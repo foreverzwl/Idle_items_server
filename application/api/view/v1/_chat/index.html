@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket</title>
+    <input type="text" name="sendText"/>
+</head>
+<body>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script>
+        var ws = new WebSocket('ws://www.zwl.com:8282');
+        var text = "s";
+        ws.onmessage = function(message){
+            console.log(message.data);
+            let data = eval("("+message.data+")");
+            if(data.type == "init"){
+                var client_id = data["client_id"];
+                $.ajax({
+                    url:"http://www.zwl.com/api/v1/chat/2",
+                    type: "POST",
+                    beforeSend: function(xhr){
+                        xhr.setRequestHeader("token","3907b4e5046261c019bdf20b49c5b989");
+                    },
+                    data: {"client_id":client_id,"message":text},
+                    success: function(date){
+                        console.log("发送成功");
+                        console.log(data);
+                    },
+                    error: function(data){
+                        console.log("发送失败");
+                        console.log(data);
+                    }
+                })
+            }
+        }
+    </script>
+</body>
+</html>
