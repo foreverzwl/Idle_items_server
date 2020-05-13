@@ -9,7 +9,7 @@ use app\api\model\UserAddress as UserAddressModel;
 use app\lib\exception\SuccessMessage;
 use app\lib\exception\UserException;
 
-class Address
+class Address extends BaseController
 {
     private $user;
     private $uid;
@@ -71,6 +71,7 @@ class Address
         if (!$address) {
             throw new UserException(['msg' => '当前用户没有地址信息']);
         }
+        $address->address = $address->province . $address->city . $address->area . $address->detail;
         return $address;
     }
 }

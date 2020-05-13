@@ -6,7 +6,7 @@ class AddressNew extends BaseValidate
 {
     protected $rule = [
         'name' => 'require|isNotEmpty',
-        'moblie' => 'require|isMobile',
+        'mobile' => 'require|isMobile',
         'country' => 'require|isNotEmpty',
         'province' => 'require|isNotEmpty',
         'city' => 'require|isNotEmpty',
