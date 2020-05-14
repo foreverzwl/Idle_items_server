@@ -63,7 +63,7 @@ class Order extends BaseController
     }
 
     /**
-     * 获取当前用户全部订单
+     * 取消订单
      * @url api/v1/order/all
      * @id 订单编号
      */
