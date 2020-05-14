@@ -4,6 +4,7 @@ namespace app\api\controller\v1;
 
 use app\api\validate\AddressNew;
 use app\api\service\Token as Token;
+use app\api\service\User as UserService;
 use app\api\model\User as UserModel;
 use app\api\model\UserAddress as UserAddressModel;
 use app\lib\exception\SuccessMessage;
@@ -30,7 +31,7 @@ class Address extends BaseController
         $this->uid = $uid;
 
         //  根据uid查找用户数据，判断用户是否存在
-        $user = UserModel::get($uid);
+        $user = UserService::isUserExist($uid);
         $this->user = $user;
     }
 

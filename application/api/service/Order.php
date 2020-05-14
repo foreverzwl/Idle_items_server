@@ -7,6 +7,7 @@ use app\api\model\OrderItem as OrderItemModel;
 use app\api\model\UserAddress as UserAddressModel;
 use app\lib\exception\OrderException;
 use app\lib\exception\ParameterException;
+use app\lib\exception\ScopeException;
 use app\lib\exception\UserException;
 use Exception;
 use think\Db;
@@ -23,6 +24,9 @@ class Order
     
     protected $store_id;
 
+    /**
+     * 创建订单
+     */
     public function place($uid,$oGoodsArr){
         //oGoods与goods作对比
         $this->oGoodsArr = $oGoodsArr;
@@ -95,6 +99,12 @@ class Order
         $order->trade_code = 1;
         $order->status = 0;
 
+        if (empty($buyer['name'])) {
+            $buyer = (object) null;
+        } else if (empty($store['name'])) {
+            $store = (object) null;
+        }
+
         Db::startTrans();
         try {
             $order->save();
@@ -108,7 +118,9 @@ class Order
         }
         return [
             'order_no' => $orderNo,
-            'create_time' => $create_time
+            'create_time' => $create_time,
+            'buyer_info' => $buyer,
+            'store_info' => $store
         ];
     }
 
@@ -138,11 +150,20 @@ class Order
      */
     public static function makeOrderNo(){
         $yCode = array('A','B','C','D','E','F','G','H','I','J');
+        $dateTime = self::getDateStr();
         $orderSn = $yCode[intval(date('Y')) - 2020] . strtoupper(dechex(date('m'))) . date('d') . substr(
-                microtime(),2,5) . sprintf('%02d',rand(0,99));
+                microtime(),2,5) . sprintf('%02d',rand(0,99)) . $dateTime;
         return $orderSn;
     }
 
+    /**
+     * 获取当前时间字符形式，例如： 2020025141444
+     */
+    public static function getDateStr(){
+        $time = time();
+        $result = date('Y',$time).date('m',$time).date('d',$time).date('H',$time).date('i',$time).date('s',$time);
+        return $result;
+    }
     /**
      * 生成订单快照
      */
@@ -300,4 +321,25 @@ class Order
         return $goodsArr;
     }
 
+    /**
+     * 取消订单
+     */
+    public function cancelOrder($uid,$orderNo){
+        $order = OrderModel::getOrderByOrderNo($orderNo);
+        if (!$order) {
+            throw new OrderException(['订单不存在']);
+        }
+        if ($order->buyer_id != $uid) {
+            throw new ScopeException(['无操作权限']);
+        }
+        Db::startTrans();
+        try {
+            OrderModel::updateOrderStatus($orderNo,$uid,1);
+            OrderItemModel::softDelete($orderNo);
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollBack();
+            throw new Exception('取消订单失败，服务器异常');
+        }
+    }
 }

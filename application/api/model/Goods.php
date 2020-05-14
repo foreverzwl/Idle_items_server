@@ -3,6 +3,7 @@
 namespace app\api\model;
 
 use app\api\model\BaseModel;
+use Exception;
 
 class Goods extends BaseModel
 {

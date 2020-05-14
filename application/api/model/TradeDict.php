@@ -6,7 +6,7 @@ use app\api\model\BaseModel;
 
 class TradeDict extends BaseModel
 {
-    protected $hidden = ['create_time','delete_time'];
+    protected $hidden = ['create_time','delete_time', 'on'];
     
     public static function getTrade($tradeID){
         return self::where('trade_method','=',$tradeID)->find();

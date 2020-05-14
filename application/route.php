@@ -43,6 +43,8 @@ Route::group('api/:version/banner',function(){
 //订单相关路由
 Route::group('api/:version/order',function(){
     Route::post('/create','api/:version.Order/placeOrder');
+    Route::get('/all','api/:version.Order/getAllOrders');
+    Route::post('/cancel/:id','api/:version.Order/cancelOrder');
 });
 
 Route::post('api/:version/chat/:id','api/:version.Chat/sendToMerchants');

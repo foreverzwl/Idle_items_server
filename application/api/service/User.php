@@ -17,6 +17,6 @@ class User
         if(!$user){
             throw new UserException();
         }
-        return true;
+        return $user;
     }
 }
