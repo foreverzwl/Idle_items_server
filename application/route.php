@@ -42,9 +42,15 @@ Route::group('api/:version/banner',function(){
 
 //订单相关路由
 Route::group('api/:version/order',function(){
-    Route::post('/create','api/:version.Order/placeOrder');
+    Route::post('/new_order','api/:version.Order/placeOrder');
     Route::get('/all','api/:version.Order/getAllOrders');
-    Route::post('/cancel/:id','api/:version.Order/cancelOrder');
+    Route::get('/waiting','api/:version.Order/getWaitingOrders');
+    Route::get('/pending_orders','api/:version.Order/getPendingOrders');
+    Route::get('/trading','api/:version.Order/tradingBelongsBuyer');
+    Route::get('/my_trading','api/:version.Order/tradingBelongsStore');
+    Route::post('/cancel_order/:id','api/:version.Order/cancelOrder');
+    Route::post('/agree_order/:id','api/:version.Order/agreeOrder');
+    Route::post('/refuse_order/:id','api/:version.Order/refuseOrder');
 });
 
 Route::post('api/:version/chat/:id','api/:version.Chat/sendToMerchants');

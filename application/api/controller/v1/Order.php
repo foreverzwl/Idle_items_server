@@ -9,6 +9,7 @@ use app\api\model\Order as OrderModel;
 use app\api\validate\OrderPlaceValidate;
 use app\lib\exception\OrderException;
 use app\lib\exception\SuccessMessage;
+use Exception;
 
 class Order extends BaseController
 {
@@ -36,8 +37,8 @@ class Order extends BaseController
     }
     
     /**
-     * 检查相关商品的库存
-     * @url api/v1/order/create
+     * 检查相关商品的库存，创建订单
+     * @url api/v1/order/new_order
      */
     public function placeOrder(){
         (new OrderPlaceValidate())->goCheck();
@@ -51,7 +52,7 @@ class Order extends BaseController
     }
 
     /**
-     * 获取当前用户全部订单
+     * 获取买家用户全部订单
      * @url api/v1/order/all
      */
     public function getAllOrders(){
@@ -63,8 +64,20 @@ class Order extends BaseController
     }
 
     /**
-     * 取消订单
-     * @url api/v1/order/all
+     * 获取买家用户等待同意订单
+     * @url api/v1/order/waiting
+     */
+    public function getWaitingOrders(){
+        $orders = OrderModel::getWaitingOrdersByBuyer($this->uid);
+        if($orders->isEmpty()){
+            throw new OrderException(['msg' => '当前没有订单等待商家同意']);
+        }
+        return $orders;
+    }
+
+    /**
+     * 买家用户取消订单
+     * @url api/v1/order/cancel_order
      * @id 订单编号
      */
     public function cancelOrder($id){
@@ -72,6 +85,70 @@ class Order extends BaseController
         $orderService->cancelOrder($this->uid,$id);
         return json(new SuccessMessage(['msg' => '取消订单成功']),201);
     }
-    
 
+    /**
+     * 买家用户所有进入交易状态的订单
+     * @url api/v1/order/trading
+     * @id 订单编号
+     */
+    public function tradingBelongsBuyer(){
+        $orders = OrderModel::getOrderByBuyerAndStatus($this->uid, 2);
+        if($orders->isEmpty()){
+            throw new OrderException(['msg' => '当前没有进入交易状态的订单']);
+        }
+        return $orders;
+    }
+
+    /**
+     * 获取商家用户等待处理的订单
+     * @url api/v1/order/pending_orders
+     */
+    public function getPendingOrders(){
+        $orders = OrderModel::getWaitingOrdersByStore($this->uid);
+        if($orders->isEmpty()){
+            throw new OrderException(['msg' => '当前没有订单需要处理']);
+        }
+        return $orders;
+    }
+
+    /**
+     * 商家同意订单
+     * @url api/v1/order/agree_order
+     * @id 订单编号
+     */
+    public function agreeOrder($id){
+        $goods = OrderModel::getOrderDetailByStore($id, $this->uid);
+        if (!$goods) {
+            throw new OrderException(['msg' => '订单不存在']);
+        }
+        $orderService = new OrderService();
+        $result = $orderService->agreeOrder($this->uid,$goods->item,$id);
+        if(!$result['pass']){
+            throw new OrderException(['msg' => '操作失败，库存不足']);
+        }
+        return json(new SuccessMessage(['msg' => '处理订单成功']),201);
+    }
+
+    /**
+     * 商家拒绝订单
+     * @url api/v1/order/refuse_order
+     * @id 订单编号
+     */
+    public function refuseOrder($id){
+        OrderModel::updateOrderStatusByStore($id, $this->uid, 3);
+        return json(new SuccessMessage(['msg' => '处理订单成功']),201);
+    }
+
+    /**
+     * 商家所有进入交易状态的订单
+     * @url api/v1/order/my_trading
+     * @id 订单编号
+     */
+    public function tradingBelongsStore(){
+        $orders = OrderModel::getOrderByStoreAndStatus($this->uid, 2);
+        if($orders->isEmpty()){
+            throw new OrderException(['msg' => '当前没有进入交易状态的订单']);
+        }
+        return $orders;
+    }
 }

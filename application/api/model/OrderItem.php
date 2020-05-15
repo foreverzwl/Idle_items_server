@@ -12,4 +12,5 @@ class OrderItem extends BaseModel
     public static function softDelete($orderNo){
         self::destroy(['order_no' => $orderNo]);
     }
+
 }

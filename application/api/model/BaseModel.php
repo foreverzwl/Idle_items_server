@@ -11,6 +11,7 @@ class BaseModel extends Model
     protected $deleteTime = 'delete_time';
     //  自定写入时间
     protected $autoWriteTimestamp = 'dateTime';
+    protected $createTime = 'create_time';
     //  自动写入更新时间
     protected $updateTime = 'update_time';
     

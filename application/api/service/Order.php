@@ -5,6 +5,7 @@ use app\api\model\Order as OrderModel;
 use app\api\model\Goods as GoodsModel;
 use app\api\model\OrderItem as OrderItemModel;
 use app\api\model\UserAddress as UserAddressModel;
+use app\lib\exception\GoodsException;
 use app\lib\exception\OrderException;
 use app\lib\exception\ParameterException;
 use app\lib\exception\ScopeException;
@@ -35,23 +36,17 @@ class Order
 
         $this->verify();
 
-        // echo "调用getGoodsByOrder\n";
         $this->goodsArr = $this->getGoodsByOrder($oGoodsArr);
-        // echo "调用getOrderStatus\n";
         $status = $this->getOrderStatus();
         if(!$status['pass']){
             $status['order_id'] = -1;
             return $status;
         }
-
-        // echo "调用makeOrderNo\n";
         //  生成订单号
         $orderNo = $this->makeOrderNo();
         // 创建订单
-        // echo "调用snapOrder\n";
         $orderSnap = $this->snapOrder($orderNo);
         //生成订单并写入数据库
-        // echo "调用createOrder\n";
         $status = $this->createOrder($orderSnap, $orderNo);
         $status['pass'] = true;
         return $status;
@@ -288,7 +283,7 @@ class Order
         }
         if($gIndex == -1){
             throw new OrderException([
-                'msg' => 'ID为'.$oGID.'的商品不存在，创建订单失败'
+                'msg' => 'ID为'.$oGID.'的商品不存在，操作失败'
                 ]);
         }else{
 
@@ -327,15 +322,69 @@ class Order
     public function cancelOrder($uid,$orderNo){
         $order = OrderModel::getOrderByOrderNo($orderNo);
         if (!$order) {
-            throw new OrderException(['订单不存在']);
+            throw new OrderException(['msg' => '订单不存在']);
         }
         if ($order->buyer_id != $uid) {
-            throw new ScopeException(['无操作权限']);
+            throw new ScopeException(['msg' => '无操作权限']);
         }
         Db::startTrans();
         try {
-            OrderModel::updateOrderStatus($orderNo,$uid,1);
+            OrderModel::updateOrderStatusByBuyer($orderNo,$uid,1);
             OrderItemModel::softDelete($orderNo);
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollBack();
+            throw new Exception('取消订单失败，服务器异常');
+        }
+    }
+
+    /**
+     * 商家同意订单，对商品数量进行扣除
+     */
+    public function agreeOrder($uid,$oGoodsArr,$orderNo){
+        $order = OrderModel::getOrderByOrderNo($orderNo);
+        if (!$order) {
+            throw new OrderException(['msg' => '订单不存在']);
+        }
+        if ($order->store_id != $uid) {
+            throw new ScopeException(['msg' => '无操作权限']);
+        }
+        //oGoods与goods作对比
+        $this->oGoodsArr = $oGoodsArr;
+        $this->uid = $uid;
+        //  从商品列表中获取商品
+        $goodsArr = $this->getGoodsByOrder($oGoodsArr);
+        if(empty($goodsArr)){
+            throw new GoodsException();
+        }
+        $this->goodsArr = $goodsArr;
+        //  检查库存是否充足
+        $status = $this->getOrderStatus();
+        if(!$status['pass']){
+            throw new OrderException(['msg' => '订单相关商品库存不足，操作失败']);
+        }
+        //  更改订单状态，并扣除库存
+        $this->changeStatusAndDeduct($status['gStatusArr'],$orderNo,$uid);
+        $status = ['pass' => true];
+        return $status;
+    }
+
+    /**
+     * 扣除商品库存
+     */
+    private function changeStatusAndDeduct ($orderItem,$orderNo,$uid) {
+        $arr = array();
+        foreach ($orderItem as $item) {
+            $temp['goods_id'] = $item['goods_id'];
+            //  自减
+            $temp['stock'] = ['dec', $item['count']];
+            array_push($arr,$temp);
+        }
+        Db::startTrans();
+        try {
+            OrderModel::updateOrderStatusByBuyer($orderNo,$uid,2);
+            $goodModel = new GoodsModel();
+            $goodModel->isUpdate()->saveAll($arr);
             Db::commit();
         } catch (\Exception $e) {
             Db::rollBack();
