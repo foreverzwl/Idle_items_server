@@ -12,7 +12,7 @@
 use think\Route;
 
 //  交易方式
-Route::get('api/:version/trade/all','api/:version.Trade/getAllTrade');
+// Route::get('api/:version/trade/all','api/:version.Trade/getAllTrade');
 //  分类目录
 Route::get('api/:version/category/all','api/:version.Category/getAllCategories');
 
@@ -26,6 +26,7 @@ Route::group('api/:version/collection',function(){
 
 // 商品相关路由
 Route::group('api/:version/goods',function(){
+    Route::get('/owner/:id','api/:version.Goods/getOwnerInfoByGoods');
     Route::get('/all','api/:version.Goods/getAllGoods');
     Route::get('/my/my_goods/on','api/:version.Goods/getMyGoodsOn');
     Route::get('/my/my_goods/off','api/:version.Goods/getMyGoodsOff');
@@ -42,18 +43,31 @@ Route::group('api/:version/banner',function(){
 
 //订单相关路由
 Route::group('api/:version/order',function(){
-    Route::post('/new_order','api/:version.Order/placeOrder');
     Route::get('/all','api/:version.Order/getAllOrders');
+    Route::get('/my_all_sales','api/:version.Order/getAllMySales');
     Route::get('/waiting','api/:version.Order/getWaitingOrders');
-    Route::get('/pending_orders','api/:version.Order/getPendingOrders');
     Route::get('/trading','api/:version.Order/tradingBelongsBuyer');
+    Route::get('/successful_orders','api/:version.Order/getAllSuccessOrder');
+    Route::get('/pending_orders','api/:version.Order/getPendingOrders');
     Route::get('/my_trading','api/:version.Order/tradingBelongsStore');
+    Route::post('/new_order','api/:version.Order/placeOrder');
     Route::post('/cancel_order/:id','api/:version.Order/cancelOrder');
     Route::post('/agree_order/:id','api/:version.Order/agreeOrder');
     Route::post('/refuse_order/:id','api/:version.Order/refuseOrder');
+    Route::post('/confirm_trade/:id','api/:version.Order/confirmTrade');
+    Route::post('/cancel_trade/:id','api/:version.Order/cancelTrade');
+    
 });
 
-Route::post('api/:version/chat/:id','api/:version.Chat/sendToMerchants');
+//聊天相关路由
+Route::group('api/:version/chat',function(){
+    Route::post('/init','api/:version.Chat/bindUid');
+    Route::post('/send_to_store','api/:version.Chat/sendToStore');
+});
+
+Route::group('api/:version/chatList',function(){
+    Route::get('/:i','api/:version.chatList/getChatList');
+});
 
 //  token相关路由
 Route::group('api/:version/token',function(){

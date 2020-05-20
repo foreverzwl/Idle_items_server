@@ -8,7 +8,7 @@ use Exception;
 class Goods extends BaseModel
 {
     protected $hidden = ['update_time','delete_time','category_id'];
-
+    
     /**
      * 读取器，用于拼接图片地址
      * get+字段名称+Attr
@@ -132,6 +132,14 @@ class Goods extends BaseModel
             self::commit();
         }
         return true;
+    }
+
+    /**
+     * 获取商品所属用户的信息
+     */
+    public static function getOwnerInfoByGoods($goodsID){
+        $ownerAddress = self::with(['user','user.address'])->where('goods_id',$goodsID)->select()->visible(['user.address']);
+        return $ownerAddress;
     }
 
 }

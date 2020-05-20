@@ -47,34 +47,21 @@ class Order extends BaseModel
     }
 
     /**
-     * 根据买家id获取等待同意订单
+     * 根据商家id获取全部订单，包括软删除数据
      */
-    public static function getWaitingOrdersByBuyer ($uid) {
-        $orders = self::with(['item', 'trade',
+    public static function getAllOrdersByStore ($uid) {
+        $orders = self::with(['trade',
+                            'item' =>function($query){
+                                $query -> removeOption('soft_delete');
+                            }, 
                             'status' => function($query){
                                 $query->where(['on' => 1, 'menu' => 'order']);
                             }
                         ])
-                        ->where(['buyer_id' => $uid, 'status' => 0])
+                        ->where('store_id',$uid)
                         ->order('update_time desc')
                         ->select()
-                        ->hidden(['trade_code', 'buyer_id', 'buyer_name', 'buyer_mobile', 'buyer_address']);
-        return $orders;
-    }
-
-    /**
-     * 根据商家id获取等待处理订单
-     */
-    public static function getWaitingOrdersByStore ($uid) {
-        $orders = self::with(['item', 'trade',
-                            'status' => function($query){
-                                $query->where(['on' => 1, 'menu' => 'order']);
-                            }
-                        ])
-                        ->where(['store_id' => $uid, 'status' => 0])
-                        ->order('update_time desc')
-                        ->select()
-                        ->hidden(['trade_code', 'buyer_id', 'buyer_name', 'buyer_mobile', 'buyer_address']);
+                        ->hidden(['trade_code', 'store_id', 'store_name', 'store_mobile', 'store_address']);
         return $orders;
     }
 
@@ -87,10 +74,18 @@ class Order extends BaseModel
     }
 
     /**
-     * 根据商家用户获取待处理订单以及相关商品
+     * 根据买家用户获取指定状态、订单编号的订单
      */
-    public static function getOrderDetailByStore ($orderNo, $uid) {
-        $order = self::with('item')->where(['order_no' => $orderNo, 'store_id' => $uid, 'status' => 0])->find();
+    public static function getOrderDetailByBuyerAndStatus ($orderNo, $uid, $status) {
+        $order = self::with('item')->where(['order_no' => $orderNo, 'buyer_id' => $uid, 'status' => $status])->find();
+        return $order;
+    }
+
+    /**
+     * 根据商家用户获取指定状态、订单编号的订单
+     */
+    public static function getOrderDetailByStoreAndStatus ($orderNo, $uid, $status) {
+        $order = self::with('item')->where(['order_no' => $orderNo, 'store_id' => $uid, 'status' => $status])->find();
         return $order;
     }
 
@@ -109,18 +104,34 @@ class Order extends BaseModel
     }
 
     /**
-     * 根据买家用户id获取指定状态订单
+     * 根据买家用户id获取指定状态、订单编号的订单
      */
     public static function getOrderByBuyerAndStatus ($uid, $status) {
-        $order = self::with('item')->where(['buyer_id' => $uid, 'status' => $status])->select();
-        return $order;
+        $orders = self::with(['item', 'trade',
+                            'status' => function($query){
+                                $query->where(['on' => 1, 'menu' => 'order']);
+                            }
+                        ])
+                        ->where(['buyer_id' => $uid, 'status' => $status])
+                        ->order('update_time desc')
+                        ->select()
+                        ->hidden(['trade_code', 'buyer_id', 'buyer_name', 'buyer_mobile', 'buyer_address']);
+        return $orders;
     }
 
     /**
-     * 根据商家用户id获取指定状态订单
+     * 根据商家用户id获取指定状态、订单编号的订单
      */
     public static function getOrderByStoreAndStatus ($uid, $status) {
-        $order = self::with('item')->where(['store_id' => $uid, 'status' => $status])->select();
-        return $order;
+        $orders = self::with(['item', 'trade',
+                            'status' => function($query){
+                                $query->where(['on' => 1, 'menu' => 'order']);
+                            }
+                        ])
+                        ->where(['store_id' => $uid, 'status' => $status])
+                        ->order('update_time desc')
+                        ->select()
+                        ->hidden(['trade_code', 'store_id', 'store_name', 'store_mobile', 'store_address']);
+        return $orders;
     }
 }

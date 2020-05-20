@@ -341,19 +341,19 @@ class Order
     /**
      * 商家同意订单，对商品数量进行扣除
      */
-    public function agreeOrder($uid,$oGoodsArr,$orderNo){
-        $order = OrderModel::getOrderByOrderNo($orderNo);
-        if (!$order) {
+    public function agreeOrder($uid,$orderNo){
+        //  根据订单号获取订单信息以及相关商品
+        $goods = OrderModel::getOrderDetailByStoreAndStatus($orderNo, $uid, 0);
+        if (!$goods) {
             throw new OrderException(['msg' => '订单不存在']);
-        }
-        if ($order->store_id != $uid) {
-            throw new ScopeException(['msg' => '无操作权限']);
+        } else if (($goods->item)->isEmpty()) {
+            throw new OrderException(['msg' => '订单相关商品不存在']);
         }
         //oGoods与goods作对比
-        $this->oGoodsArr = $oGoodsArr;
+        $this->oGoodsArr = $goods->item;
         $this->uid = $uid;
         //  从商品列表中获取商品
-        $goodsArr = $this->getGoodsByOrder($oGoodsArr);
+        $goodsArr = $this->getGoodsByOrder($goods->item);
         if(empty($goodsArr)){
             throw new GoodsException();
         }
@@ -382,13 +382,86 @@ class Order
         }
         Db::startTrans();
         try {
-            OrderModel::updateOrderStatusByBuyer($orderNo,$uid,2);
+            OrderModel::updateOrderStatusByStore($orderNo,$uid,2);
             $goodModel = new GoodsModel();
             $goodModel->isUpdate()->saveAll($arr);
             Db::commit();
         } catch (\Exception $e) {
             Db::rollBack();
             throw new Exception('取消订单失败，服务器异常');
+        }
+    }
+
+    /**
+     * 买家取消交易，对商品数量进行恢复
+     */
+    public function cancelTrade($uid,$orderNo){
+
+        //  根据订单号获取订单信息以及相关商品
+        $goods = OrderModel::getOrderDetailByBuyerAndStatus($orderNo, $uid, 2);
+        if (!$goods) {
+            throw new OrderException(['msg' => '订单不存在']);
+        } else if (($goods->item)->isEmpty()) {
+            throw new OrderException(['msg' => '订单相关商品不存在']);
+        }
+
+        //  根据订单相关商品获取需要恢复库存的商品
+        $goodsArr = $this->getToChangeGoodsByOrder($goods->item);
+        if(empty($goodsArr)){
+            //  商品已经下架则直接更改交易状态
+            OrderModel::updateOrderStatusByBuyer($orderNo,$uid,4);
+        } else {
+            $this->changeStatusAndIncrease($goodsArr,$orderNo,$uid);
+        }
+        $status = ['pass' => true];
+        return $status;
+    }
+
+    /**
+     * 获取需要恢复库存的商品
+     */
+    private function getToChangeGoodsByOrder ($orderItem) {
+        $oGIDs = [];
+        $countArr = [];
+        foreach($orderItem as $item){
+            $goodsId = $item['goods_id'];
+            array_push($oGIDs,$goodsId);
+            $countArr[$goodsId] = $item['count'];
+        }
+
+        //  查询订单相关商品中未下架商品
+        $goodsArr = GoodsModel::all($oGIDs)
+            ->visible(['goods_id','stock'])
+            ->toArray();
+
+        for($i=0; $i<count($goodsArr); $i++){
+            $goodsId = $goodsArr[$i]['goods_id'];
+            $goodsArr[$i]['count'] = $countArr[$goodsId];
+        }
+
+        return $goodsArr;
+    }
+
+    /**
+     * 恢复商品库存
+     */
+    private function changeStatusAndIncrease ($orderItem,$orderNo,$uid) {
+        $arr = array();
+        foreach ($orderItem as $item) {
+            $temp['goods_id'] = $item['goods_id'];
+            //  自增
+            $temp['stock'] = ['inc', $item['count']];
+            array_push($arr,$temp);
+        }
+        Db::startTrans();
+        try {
+            OrderModel::updateOrderStatusByBuyer($orderNo,$uid,4);
+            $goodModel = new GoodsModel();
+            $goodModel->isUpdate()->saveAll($arr);
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollBack();
+            throw new Exception('取消交易失败，服务器异常');
         }
     }
 }

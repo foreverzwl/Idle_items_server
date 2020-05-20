@@ -2,7 +2,7 @@
 
 namespace app\lib\exception;
 
-class SuccessMessage
+class ChatMessage
 {
     public $code = 201;
     public $msg = '操作成功';
@@ -15,9 +15,6 @@ class SuccessMessage
         //如果传入参数不是数组，返回默认值
         if(!is_array($params)){
             return ;
-        }
-        if(array_key_exists('msg',$params)){
-            $this->msg = $params['msg'];
         }
         if(array_key_exists('data',$params)){
             $this->data = $params['data'];

@@ -15,6 +15,7 @@ class BaseModel extends Model
     //  自动写入更新时间
     protected $updateTime = 'update_time';
     
+    
     //框架自带图片读取器
     public function prefixImgUrl($value){
         return config('setting.img_prefix').$value;

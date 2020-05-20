@@ -3,6 +3,7 @@
 namespace app\api\controller\v1;
 
 use app\api\model\Goods as GoodsModel;
+use app\api\model\UserAddress as UserAddressModel;
 use app\api\service\User as UserService;
 use app\api\service\Goods as GoodsService;
 use app\api\service\Token as Token;
@@ -10,13 +11,12 @@ use app\api\validate\GoodsNew;
 use app\api\validate\IDMustBeSignlessInt;
 use app\lib\exception\GoodsException;
 use app\lib\exception\SuccessMessage;
+use app\lib\exception\UserAddressException;
 use think\Request;
 
 class Goods
 {
-    protected $beforeActionList = [
-        'checkOwner' => ['only' => ['getMyGoods']]
-    ];
+
     /**
      * 获取所有商品
      * @url /api/v1/goods/all
@@ -127,6 +127,24 @@ class Goods
         $goodsService = new GoodsService();
         $goods_id = $goodsService->createMyGoods($uid,$goodsData);
         return $goods_id;
+    }
+
+    /**
+     * 根据商品获取商家的个人信息
+     * @url /api/v1/goods/owner/id
+     * @HTTP get
+     * @id 商品id
+     */
+    public function getOwnerInfoByGoods($id){
+        $uid = Token::getCurrentUid();  
+        UserService::isUserExist($uid);
+        $owner = GoodsModel::getOwnerInfoByGoods($id);
+        if($owner->isEmpty()){
+            throw new UserAddressException();
+        }
+        $buyer = UserAddressModel::getAddressByID($uid);
+        $result = ['buyerId' => $buyer['uid'],'storeId' => $owner[0]['user']['address']['uid'],'buyerName' => $buyer['name'],'storeName' => $owner[0]['user']['address']['name']];
+        return $result;
     }
 }
 

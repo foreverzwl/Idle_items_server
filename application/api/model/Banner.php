@@ -8,7 +8,6 @@ class Banner extends BaseModel
 {
     protected $hidden = ['create_time','update_time','delete_time','banner_id','goods_id'];
 
-
     /**
      * 获取与banner相关联的banner_img
      */

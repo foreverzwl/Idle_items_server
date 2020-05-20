@@ -7,6 +7,8 @@ use app\api\model\BaseModel;
 class CollectionGoods extends BaseModel
 {
     protected $hidden = ['user_id','delete_time'];
+    //  关闭update_time字段自动写入
+    protected $updateTime = false;
 
     public function goods () {
         return $this->belongsTo('Goods','goods_id','goods_id')->field('goods_id,description,price,main_img_url');

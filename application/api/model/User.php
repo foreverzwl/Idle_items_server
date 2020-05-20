@@ -8,6 +8,7 @@ class User extends BaseModel
 {
     protected $hidden = ['create_time','update_time','delete_time','open_id'];
 
+
     /**
      * 关联地址模型获取用户收获地址
      */
